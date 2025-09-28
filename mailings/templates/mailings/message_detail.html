@@ -1,0 +1,32 @@
+{% extends 'mailings/base.html' %}
+
+{% block title %}Детали сообщения{% endblock %}
+
+{% block content %}
+  <div class="container mt-4">
+    <h2>Информация о сообщении</h2>
+
+    <div class="mb-3">
+      <strong>ID:</strong> {{ message.id }}
+    </div>
+
+    <div class="mb-3">
+      <strong>Тема:</strong> {{ message.subject }}
+    </div>
+
+    <div class="mb-3">
+      <strong>Сообщение:</strong> {{ message.body }}
+    </div>
+
+    <div class="mb-3">
+      <strong>Владелец:</strong> {{ message.owner.username }}
+    </div>
+
+    <div class="mt-4">
+      <a href="{% url 'mailings:message_list' %}" class="btn btn-secondary">Назад к списку</a>
+      {% if message.owner == request.user %}
+        <a href="{% url 'mailings:message_update' message.pk %}" class="btn btn-primary">Редактировать</a>
+      {% endif %}
+    </div>
+  </div>
+{% endblock %}

@@ -1,0 +1,52 @@
+{% extends 'mailings/base.html' %}
+
+{% block title %}Список сообщений{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2>Список сообщений</h2>
+        <!-- Кнопка для добавления нового сообщения -->
+        <a href="{% url 'mailings:message_create' %}" class="btn btn-success">Добавить сообщение</a>
+    </div>
+
+    <table class="table table-striped table-bordered">
+        <thead class="table-dark">
+            <tr>
+                <th>ID</th>
+                <th>Тема</th>
+                <th>Владелец</th>
+                <th>Сообщение</th>
+                <th>Действия</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% if message_list %}
+                {% for message in message_list %}
+                    <tr>
+                        <td>{{ message.id }}</td>
+                        <td>{{ message.subject }}</td>
+                        <td>{{ message.owner.username }}</td>
+                        <td>{{ message.body|truncatechars:100 }}</td>
+                        <td>
+                            <a href="{% url 'mailings:message_detail' message.pk %}" class="btn btn-sm btn-primary">Детали</a>
+                            {% if message.owner == request.user %}
+                                <a href="{% url 'mailings:message_update' message.pk %}" class="btn btn-sm btn-warning">Редактировать</a>
+                                <form method="post" action="{% url 'mailings:message_confirm_delete' message.pk %}" style="display:inline;">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Удалить сообщение?');">Удалить</button>
+                                </form>
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% endfor %}
+            {% else %}
+                <!-- Если сообщений нет, показываем строку-пустышку -->
+                <tr>
+                    <td colspan="5" class="text-center">Нет доступных сообщений.</td>
+                </tr>
+            {% endif %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

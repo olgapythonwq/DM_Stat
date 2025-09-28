@@ -1,0 +1,76 @@
+{% extends 'mailings/base.html' %}
+
+{% block title %}Список рассылок{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2>Список рассылок</h2>
+        <a href="{% url 'mailings:mailing_create' %}" class="btn btn-success">Добавить рассылку</a>
+    </div>
+
+    <table class="table table-striped table-bordered">
+        <thead class="table-dark">
+            <tr>
+                <th>ID</th>
+                <th>Статус</th>
+                <th>Владелец</th>
+                <th>Сообщение</th>
+                <th>Клиенты</th>
+                <th>Начало</th>
+                <th>Окончание</th>
+                <th>Действия</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% if mailings %}
+                {% for mailing in mailings %}
+                    <tr>
+                        <td>{{ mailing.id }}</td>
+                        <td>{{ mailing.status }}</td>
+                        <td>{{ mailing.owner.username }}</td>
+                        <td>{{ mailing.message.subject }}</td>
+                        <td>
+                            {% with mailing.clients.all|slice:":3" as limited_clients %}
+                                {% for client in limited_clients %}
+                                    {{ client.email }}{% if not forloop.last %}, {% endif %}
+                                {% endfor %}
+                            {% endwith %}
+                            {% if mailing.clients.count > 3 %}
+                                и ещё {{ mailing.clients.count|add:"-3" }}...
+                            {% endif %}
+                        </td>
+                        <td>{{ mailing.start_time|date:"d.m.Y H:i" }}</td>
+                        <td>{{ mailing.end_time|date:"d.m.Y H:i" }}</td>
+                        <td>
+                            <a href="{% url 'mailings:mailing_detail' mailing.pk %}" class="btn btn-sm btn-primary">Детали</a>
+
+                            {% if mailing.owner == request.user %}
+                                <a href="{% url 'mailings:mailing_update' mailing.pk %}" class="btn btn-sm btn-warning">Редактировать</a>
+                                <form method="post" action="{% url 'mailings:mailing_confirm_delete' mailing.pk %}" style="display:inline;">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Удалить рассылку?');">Удалить</button>
+                                </form>
+                            {% endif %}
+                            {% if is_manager and mailing.status != 'Завершена' %}
+                            <form method="post" style="display:inline;">
+                                {% csrf_token %}
+                                <input type="hidden" name="finish_mailing_id" value="{{ mailing.pk }}">
+                                <button type="submit" class="btn btn-sm btn-success" onclick="return confirm('Завершить рассылку?');">Завершить</button>
+                            </form>
+                            {% endif %}
+                        </td>
+
+                    </tr>
+                {% endfor %}
+            {% else %}
+                <tr>
+                    <td colspan="8" class="text-center">Нет доступных рассылок.</td>
+                </tr>
+            {% endif %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}
+
+
