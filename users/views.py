@@ -1,8 +1,10 @@
 from django.conf import settings  # Получаем доступ к конфигурации (например, EMAIL_HOST_USER)
 from django.contrib import messages  # Для отображения сообщений пользователю (успех/ошибка)
 from django.contrib.auth import get_user_model  # Для входа пользователя в систему
-from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin  # Для ограничения доступа к профилю
+from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin, \
+    PermissionRequiredMixin  # Для ограничения доступа к профилю
 from django.contrib.auth.views import LoginView, LogoutView  # Готовые представления входа и выхода
+from django.core.exceptions import PermissionDenied
 from django.core.mail import send_mail  # Отправка писем
 from django.shortcuts import redirect, get_object_or_404  # Для переадресации
 from django.urls import reverse_lazy, reverse  # Для получения URL по имени
@@ -108,6 +110,12 @@ class UserListView(LoginRequiredMixin, UserPassesTestMixin, ListView):
     def test_func(self):
         return self.request.user.is_staff
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        user = self.request.user
+        context['is_manager'] = user.groups.filter(name='Менеджеры').exists()
+        return context
+
 
 class UserActivationToggleView(LoginRequiredMixin, UserPassesTestMixin, View):
     def test_func(self):
@@ -128,3 +136,19 @@ class UserActivationToggleView(LoginRequiredMixin, UserPassesTestMixin, View):
             f"{'активен' if user.is_active else 'неактивен'}")
         messages.success(request, f"Пользователь {user.username} был {status}.")
         return redirect('users:user_list')
+
+
+class DeactivateUserView(LoginRequiredMixin, PermissionRequiredMixin, View):
+    permission_required = 'auth.change_user'
+
+    def post(self, request, *args, **kwargs):
+        user_id = self.kwargs.get('pk')
+        target_user = get_object_or_404(CustomUser, pk=user_id)
+
+        if not request.user.groups.filter(name='Менеджеры').exists():
+            raise PermissionDenied("Нет прав блокировать пользователей.")
+
+        target_user.is_active = False
+        target_user.save()
+        messages.success(request, f"Пользователь {target_user.email} деактивирован.")
+        return redirect('admin:auth_user_changelist')

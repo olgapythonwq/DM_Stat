@@ -57,7 +57,7 @@ class MailingForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
 
         self.fields['client'] = forms.ModelMultipleChoiceField(
-            queryset=Client.objects.all(),  # ← показываем всех, потом фильтруем
+            queryset=Client.objects.all(),
             widget=forms.CheckboxSelectMultiple,
             label='Выберите клиентов',
         )
@@ -78,5 +78,13 @@ class MailingForm(forms.ModelForm):
             self.fields['message'].queryset = Message.objects.none()
             self.fields['client'].queryset = Client.objects.none()
 
-        self.fields['status'].disabled = True
-        self.fields['status'].initial = 'Создана'
+        # Отключаем поле 'status' только для не-суперпользователей
+        if not user.is_superuser:
+            self.fields['status'].disabled = True
+
+        # При редактировании: если есть instance с установленным статусом, показываем его как initial
+        if self.instance and self.instance.pk:
+            self.fields['status'].initial = self.instance.status
+        else:
+            self.fields['status'].initial = 'Создана'
+

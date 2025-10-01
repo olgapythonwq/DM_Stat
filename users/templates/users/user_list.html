@@ -1,5 +1,5 @@
 {% extends 'mailings/base.html' %}
-
+{% load group_tags %}
 {% block content %}
 <div class="container mt-4">
     <h2>Список пользователей</h2>
@@ -32,13 +32,13 @@
                         {% endif %}
                     </td>
                     <td>
-                         {% if user == request.user and user.is_superuser %}
+                        {% if user == request.user and user.is_superuser %}
                             <em>(вы, админ)</em>
                         {% elif user == request.user %}
                             <em>(вы)</em>
                         {% elif user.is_superuser %}
                             <em>(админ)</em>
-                        {% elif request.user.is_staff %}
+                        {% elif request.user|is_in_group:"Менеджеры" %}
                             <form action="{% url 'users:toggle_activation' user.pk %}" method="post" style="display:inline;">
                                 {% csrf_token %}
                                 {% if user.is_active %}

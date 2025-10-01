@@ -52,12 +52,27 @@
                                     <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Удалить рассылку?');">Удалить</button>
                                 </form>
                             {% endif %}
-                            {% if is_manager and mailing.status != 'Завершена' %}
-                            <form method="post" style="display:inline;">
-                                {% csrf_token %}
-                                <input type="hidden" name="finish_mailing_id" value="{{ mailing.pk }}">
-                                <button type="submit" class="btn btn-sm btn-success" onclick="return confirm('Завершить рассылку?');">Завершить</button>
-                            </form>
+                            {% if mailing.status != 'Завершена' %}
+                                {% if mailing.owner == request.user or is_manager %}
+                                    <form method="post" style="display:inline;">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="finish_mailing_id" value="{{ mailing.pk }}">
+                                        <button type="submit" class="btn btn-sm btn-info" onclick="return confirm('Завершить рассылку?');">
+                                            Завершить
+                                        </button>
+                                    </form>
+                                {% endif %}
+                            {% endif %}
+                            {% if mailing.status == 'Создана' %}
+                                {% if mailing.owner == request.user or is_manager %}
+                                    <form method="post" style="display:inline;">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="start_mailing_id" value="{{ mailing.pk }}">
+                                        <button type="submit" class="btn btn-sm btn-success" onclick="return confirm('Запустить рассылку?');">
+                                            Запустить
+                                        </button>
+                                    </form>
+                                {% endif %}
                             {% endif %}
                         </td>
 

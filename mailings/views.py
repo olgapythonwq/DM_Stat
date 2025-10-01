@@ -3,7 +3,10 @@ from django.core.exceptions import PermissionDenied
 from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse_lazy
+from django.views import View
 from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView, TemplateView
+
+from users.models import CustomUser
 from .models import Message, Client, Mailing, MailingAttempt
 from .forms import MessageForm, ClientForm, MailingForm
 from django.contrib import messages
@@ -38,23 +41,31 @@ class OwnerRequiredMixin(UserPassesTestMixin):
         user = self.request.user
 
         # Владелец всегда имеет доступ
-        if obj.owner == user:
+        if obj.owner == user or user.is_superuser:
             return True
 
-        model_perm_map = {
-            'client': 'mailings.can_view_all_clients',
-            'message': 'mailings.can_view_all_messages',
-            'mailing': 'mailings.can_view_all_mailings',
-        }
-
+        # Менеджеры могут только просматривать
         model_name = obj._meta.model_name
-        required_permission = model_perm_map.get(model_name)
+        if user.groups.filter(name='Менеджеры').exists():
+            # Менеджерам только просмотр
+            if self.request.method in ['GET', 'HEAD']:
+                return True
+            return False
 
-        if required_permission and user.has_perm(required_permission):
-            return True
-
-        if hasattr(self, 'required_permission') and user.has_perm(self.required_permission):
-            return True
+        # model_perm_map = {
+        #     'client': 'mailings.can_view_all_clients',
+        #     'message': 'mailings.can_view_all_messages',
+        #     'mailing': 'mailings.can_view_all_mailings',
+        # }
+        #
+        # model_name = obj._meta.model_name
+        # required_permission = model_perm_map.get(model_name)
+        #
+        # if required_permission and user.has_perm(required_permission):
+        #     return True
+        #
+        # if hasattr(self, 'required_permission') and user.has_perm(self.required_permission):
+        #     return True
 
         logger.warning(f"Access denied: user {user} tried to access {model_name} object with id {obj.pk} "
                        f"without sufficient permissions in {self.__class__.__name__}")
@@ -221,10 +232,11 @@ class MailingListView(LoginRequiredMixin, ListView):
     def post(self, request, *args, **kwargs):
         user = request.user
         # Проверка группы
-        if not user.groups.filter(name='Менеджеры').exists():
+        if not (user.groups.filter(name='Менеджеры').exists() or user.is_superuser):
             messages.error(request, "У вас нет прав завершать рассылки.")
             return redirect('mailings:mailing_list')
 
+        # Завершение рассылки
         mailing_id = request.POST.get('finish_mailing_id')
         if mailing_id:
             mailing = get_object_or_404(Mailing, id=mailing_id)
@@ -232,6 +244,18 @@ class MailingListView(LoginRequiredMixin, ListView):
             mailing.end_time = timezone.now()
             mailing.save()
             messages.success(request, f'Рассылка #{mailing.id} успешно завершена.')
+
+        # Запуск рассылки
+        start_mailing_id = request.POST.get('start_mailing_id')
+        if start_mailing_id:
+            mailing = get_object_or_404(Mailing, id=start_mailing_id)
+            if mailing.status == 'Создана':
+                mailing.status = 'Запущена'
+                mailing.start_time = timezone.now()
+                mailing.save()
+                messages.success(request, f'Рассылка #{mailing.id} запущена.')
+            else:
+                messages.warning(request, f'Рассылка #{mailing.id} уже была запущена или завершена.')
 
         return redirect('mailings:mailing_list')
 
@@ -265,12 +289,12 @@ class MailingUpdateView(LoginRequiredMixin, OwnerRequiredMixin, UpdateView):
 
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
-        kwargs['user'] = self.request.user
+        kwargs['user'] = self.request.user  # передаем текущего пользователя
         return kwargs
 
     def form_valid(self, form):
         user = self.request.user
-        if form.cleaned_data['status'] == 'Завершена' and not user.has_perm('mailings.change_mailing'):
+        if form.cleaned_data['status'] == 'Завершена' and not (user.has_perm('mailings.change_mailing') or user.is_superuser):
             logger.warning(
                 f"User {user} attempted to set mailing {form.instance.pk} status to 'Завершена' without permission")
             raise PermissionDenied("Недостаточно прав для завершения рассылки.")
