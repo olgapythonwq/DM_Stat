@@ -1,0 +1,12 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<h2>Админ-панель</h2>
+<p>Здесь вы можете видеть и управлять всеми объектами системы.</p>
+<ul>
+  <li><a href="{% url 'mailings:message_list' %}">Все сообщения</a></li>
+  <li><a href="{% url 'mailings:client_list' %}">Все клиенты</a></li>
+  <li><a href="{% url 'mailings:mailing_list' %}">Все рассылки</a></li>
+  <li><a href="{% url 'mailings:attempt_list' %}">Попытки отправки</a></li>
+</ul>
+{% endblock %}

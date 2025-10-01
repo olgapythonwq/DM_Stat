@@ -1,0 +1,46 @@
+{% extends 'mailings/base.html' %}
+
+{% block title %}Детали рассылки{% endblock %}
+
+{% block content %}
+<h1>Детали рассылки</h1>
+
+<div class="card">
+    <div class="card-body">
+        <h5 class="card-title">ID рассылки: {{ mailing.id }}</h5>
+
+        <p class="card-text"><strong>Клиенты:</strong>
+            {% for client in mailing.client.all %}
+                {{ client.full_name }} ({{ client.email }}){% if not forloop.last %}, {% endif %}
+            {% empty %}
+                <em>Нет клиентов</em>
+            {% endfor %}
+        </p>
+
+        <p class="card-text"><strong>Сообщение:</strong>
+            {% if mailing.message %}
+                {{ mailing.message.subject }} — {{ mailing.message.body }}
+            {% else %}
+                <em>Сообщение не выбрано</em>
+            {% endif %}
+        </p>
+
+        <p class="card-text"><strong>Дата и время начала:</strong> {{ mailing.start_time|date:"Y-m-d H:i" }}</p>
+
+        <p class="card-text"><strong>Дата и время завершения:</strong>
+            {% if mailing.end_time %}
+                {{ mailing.end_time|date:"Y-m-d H:i" }}
+            {% else %}
+                <em>Не завершена</em>
+            {% endif %}
+        </p>
+
+        <p class="card-text"><strong>Текущий статус:</strong> {{ mailing.status }}</p>
+
+        <a href="{% url 'mailings:mailing_list' %}" class="btn btn-secondary">Назад к списку</a>
+        {% if mailing.owner == request.user %}
+            <a href="{% url 'mailings:mailing_update' mailing.pk %}" class="btn btn-primary">Редактировать</a>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

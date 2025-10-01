@@ -1,0 +1,23 @@
+{% extends 'mailings/base.html' %}
+
+{% block title %}Главная / Статистика{% endblock %}
+
+{% block content %}
+<h2>Общая статистика</h2>
+<ul>
+  <li>Всего рассылок: {{ total_mailings }}</li>
+  <li>Всего клиентов: {{ total_clients }}</li>
+  <li>Всего сообщений: {{ total_messages }}</li>
+  <li>Всего попыток: {{ total_attempts }} (успешно: {{ attempts_successful }}, неуспешно: {{ attempts_failed }})</li>
+</ul>
+
+{% if user.is_authenticated %}
+  <h2>Ваша статистика</h2>
+  <ul>
+    <li>Ваших рассылок: {{ user_mailings }}</li>
+    <li>Ваших клиентов: {{ user_clients }}</li>
+    <li>Ваших сообщений: {{ user_messages }}</li>
+    <li>Ваших попыток: {{ user_attempts }} (успешно: {{ user_attempts_successful }}, неуспешно: {{ user_attempts_failed }})</li>
+  </ul>
+{% endif %}
+{% endblock %}

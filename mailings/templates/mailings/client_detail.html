@@ -1,0 +1,36 @@
+{% extends 'mailings/base.html' %}
+
+{% block title %}Детали клиента{% endblock %}
+
+{% block content %}
+  <div class="container mt-4">
+    <h2>Информация о клиенте</h2>
+
+    <div class="mb-3">
+      <strong>ID:</strong> {{ client.id }}
+    </div>
+
+    <div class="mb-3">
+      <strong>Почта:</strong> {{ client.email }}
+    </div>
+
+    <div class="mb-3">
+      <strong>ФИО:</strong> {{ client.full_name }}
+    </div>
+
+    <div class="mb-3">
+      <strong>Комментарий:</strong> {{ client.comment|linebreaks }}
+    </div>
+
+    <div class="mb-3">
+      <strong>Владелец:</strong> {{ client.owner.username }}
+    </div>
+
+    <div class="mt-4">
+      <a href="{% url 'mailings:client_list' %}" class="btn btn-secondary">Назад к списку</a>
+      {% if client.owner == request.user %}
+        <a href="{% url 'mailings:client_update' client.pk %}" class="btn btn-primary">Редактировать</a>
+      {% endif %}
+    </div>
+  </div>
+{% endblock %}
