@@ -229,17 +229,55 @@ class MailingListView(LoginRequiredMixin, ListView):
         context['is_manager'] = user.groups.filter(name='Менеджеры').exists()
         return context
 
+    # def post(self, request, *args, **kwargs):
+    #     user = request.user
+    #     # Проверка группы
+    #     if not (user.groups.filter(name='Менеджеры').exists() or user.is_superuser):
+    #         messages.error(request, "У вас нет прав завершать рассылки.")
+    #         return redirect('mailings:mailing_list')
+    #
+    #     # Завершение рассылки
+    #     mailing_id = request.POST.get('finish_mailing_id')
+    #     if mailing_id:
+    #         mailing = get_object_or_404(Mailing, id=mailing_id)
+    #         mailing.status = 'Завершена'
+    #         mailing.end_time = timezone.now()
+    #         mailing.save()
+    #         messages.success(request, f'Рассылка #{mailing.id} успешно завершена.')
+    #
+    #     # Запуск рассылки
+    #     start_mailing_id = request.POST.get('start_mailing_id')
+    #     if start_mailing_id:
+    #         mailing = get_object_or_404(Mailing, id=start_mailing_id)
+    #         if mailing.status == 'Создана':
+    #             mailing.status = 'Запущена'
+    #             mailing.start_time = timezone.now()
+    #             mailing.save()
+    #             messages.success(request, f'Рассылка #{mailing.id} запущена.')
+    #         else:
+    #             messages.warning(request, f'Рассылка #{mailing.id} уже была запущена или завершена.')
+    #
+    #     return redirect('mailings:mailing_list')
+
     def post(self, request, *args, **kwargs):
         user = request.user
-        # Проверка группы
-        if not (user.groups.filter(name='Менеджеры').exists() or user.is_superuser):
-            messages.error(request, "У вас нет прав завершать рассылки.")
-            return redirect('mailings:mailing_list')
+
+        def has_access(mailing):  # Проверяем, имеет ли пользователь право управлять рассылкой
+            return (
+                    user.is_superuser or
+                    user.groups.filter(name='Менеджеры').exists() or
+                    mailing.owner == user or
+                    mailing.user == user
+            )
 
         # Завершение рассылки
         mailing_id = request.POST.get('finish_mailing_id')
         if mailing_id:
             mailing = get_object_or_404(Mailing, id=mailing_id)
+            if not has_access(mailing):
+                messages.error(request, "У вас нет прав завершать эту рассылку.")
+                return redirect('mailings:mailing_list')
+
             mailing.status = 'Завершена'
             mailing.end_time = timezone.now()
             mailing.save()
@@ -249,6 +287,10 @@ class MailingListView(LoginRequiredMixin, ListView):
         start_mailing_id = request.POST.get('start_mailing_id')
         if start_mailing_id:
             mailing = get_object_or_404(Mailing, id=start_mailing_id)
+            if not has_access(mailing):
+                messages.error(request, "У вас нет прав запускать эту рассылку.")
+                return redirect('mailings:mailing_list')
+
             if mailing.status == 'Создана':
                 mailing.status = 'Запущена'
                 mailing.start_time = timezone.now()
@@ -258,7 +300,6 @@ class MailingListView(LoginRequiredMixin, ListView):
                 messages.warning(request, f'Рассылка #{mailing.id} уже была запущена или завершена.')
 
         return redirect('mailings:mailing_list')
-
 
 class MailingDetailView(LoginRequiredMixin, OwnerRequiredMixin, DetailView):
     model = Mailing
